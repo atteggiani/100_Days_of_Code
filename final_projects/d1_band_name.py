@@ -1,3 +1,4 @@
+#!/Applications/anaconda3/bin/python
 #1. Create a greeting for your program.
 print("What would be your perfect band name? In 30 seconds you will know!")
 #2. Ask the user for the city that they grew up in.

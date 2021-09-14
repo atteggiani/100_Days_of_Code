@@ -1,3 +1,4 @@
+#!/Applications/anaconda3/bin/python
 # Program to play rock-paper-scissor game with the computer.
 import random
 

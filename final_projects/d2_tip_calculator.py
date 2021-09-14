@@ -1,3 +1,4 @@
+#!/Applications/anaconda3/bin/python
 print("Welcome to the tip calculator.")
 tot=float(input("What was the total bill? $"))
 tip=float(input("What percentage tip would you like to give? (type 0 for no tip, for the sadness of waiters) "))

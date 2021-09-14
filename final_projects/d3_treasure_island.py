@@ -1,3 +1,4 @@
+#!/Applications/anaconda3/bin/python
 def intro():
     print('''
                                         ,æ#▀▒▒▒▒#╗▄                                                     
