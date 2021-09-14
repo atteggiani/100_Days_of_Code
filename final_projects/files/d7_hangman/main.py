@@ -1,8 +1,13 @@
 #!/Applications/anaconda3/bin/python
 # Program to play the famous game Hangman
+from replit import clear
 from arts import *
 from word_list import *
 import random
+
+def flush():
+    clear()
+    print(logo,end="\n\n")
 
 def check_input():
     while True:
@@ -15,14 +20,9 @@ def check_input():
             continue
     return letter.lower()
 
-def separation():
-    print("\n")
-    print("==================================")
-    print("\n")
-
 def print_guessed_word():
     spaced_guessed_word = " ".join(guessed_word)
-    print(f"Your word: {spaced_guessed_word}")
+    print(f"Your word: {spaced_guessed_word}\n")
 
 def change_guessed_word():
     return [letter if c1 == letter else c2 for c1,c2 in zip(word,guessed_word)]
@@ -31,20 +31,21 @@ def print_stages():
     print(stages[lives])
 
 def print_lives():
-    print(f"Number of lives left: {lives}")
+    print(f"Number of lives left: {lives}\n")
 
 def flow():
-    print_guessed_word()
     print_stages()
     print_lives()
-    separation()
+    print_guessed_word()
 
 def life_lost():
-    print(f"You guessed {letter}, that's NOT in the word. You lost a life!\n")
+    flush()
+    print(f"You guessed {letter}, that's NOT in the word. You lost a life!")
     flow()
 
 def letter_guessed():
-    print(f"You guessed {letter}, that IS in the word!!\n")
+    flush()
+    print(f"You guessed {letter}, that IS in the word!!")
     flow()
 
 def replay():
@@ -52,11 +53,6 @@ def replay():
     try:
         if not ans.lower() == 'p':
             exit()
-        print("")
-        print("========================================")
-        print("========================================")
-        print("========================================")
-        print("\n")
     except:
         exit()
 
@@ -70,11 +66,10 @@ def win():
     print(win_logo)
     replay()
 
-
 random.seed()
-print(logo,end="\n\n\n")
-
 while True:
+    flush()
+    print("")    
     lives = len(stages)-1
     word = random.choice(word_list)
     guessed_word = ["_" for _ in range(len(word))]
