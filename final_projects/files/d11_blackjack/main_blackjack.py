@@ -1,4 +1,5 @@
 #!/Applications/anaconda3/bin/python
+from os import register_at_fork
 import arts 
 import random
 import time
@@ -6,74 +7,99 @@ from itertools import compress
 import numpy as np
 from colorama import Fore, Back, Style
 
-def clear():
-    import os
-    os.system('cls||clear')
-
 class Player():
     def __init__(self,name = None, hidden = False, colour=None):
-        self.cards = []
-        self.value = [0]
-        self.bet = 0
+        self.cards = {'s1':[]}
+        self.value = {'s1':[0]}
+        self.bet = {'s1':0}
         self.position = 0
         self.name = name
         self.hidden = hidden
-        self.status = None
+        self.status = {'s1':None}
         self.colour = colour
         self.colourstring = self.compute_colourstring()
         self.colourname = self.compute_colourname()
-        # self.nslots = 1
+        self.nslots = 1
 
-    def has_busted(self):
-        return self.value[0] > 21
+    def split(self,slot):
+        self.add_slot()
+        slotin = slot
+        slotend = self.nslots
+        self.bet[f's{slotend}'] = self.bet[f's{slotin}']
+        card=self.cards[f's{slotin}'].pop(1)
+        self._add_card(card,slot=slotend)
+        print_cards()
+        self.deal(slot=slotin)
+        
+    def add_slot(self):
+        self.nslots += 1
+        slotstr=f"s{self.nslots}"
+        self.cards[slotstr] = []
+        self.value[slotstr] = [0]
+        self.bet[slotstr] = 0
+        self.status[slotstr] = None
 
-    def update_status(self,status=None):
-        if self.status is not None:
-                raise Exception(f"Status is already set to '{self.status}', and cannot be updated anymore.")
+    def can_split(self,slot=1):
+        s = f's{slot}'
+        if len(p.cards[s]) == 2:
+            arr=['10','J','Q','K']
+            val = [c[:-1] for c in p.cards[s]]
+            if (val[0] == val[1]) or (val[0] in arr and val[1] in arr):
+                return True
+        return False
+
+    def has_busted(self,slot=1):
+        s = f's{slot}'
+        return p.value[s][0] > 21
+
+    def update_status(self,status=None,slot = 1):
+        current = self.status[f's{slot}']
+        if current is not None:
+            raise Exception(f"Slot {slot}'s Status is already set to '{current}', and cannot be updated anymore.")
         if status is None:
-            if self.has_blackjack(): 
-                self.status = 'BLACKJACK'
-            elif self.has_busted(): 
-                self.status = 'BUSTED'
+            if self.has_blackjack(slot=slot): 
+                self.status[f's{slot}'] = 'BLACKJACK'
+            elif self.has_busted(slot=slot): 
+                self.status[f's{slot}'] = 'BUSTED'
         else:
-            self.status = status
+            self.status[f's{slot}'] = status
         self.compute_value()
 
-    def has_blackjack(self):
-        if len(self.value) == 1:
-            return self.value[0] == 21
+    def has_blackjack(self,slot=1):
+        s = f's{slot}'
+        if len(p.value[s]) == 1:
+            return p.value[s][0] == 21
         else:
-            return self.value[1] == 21
-    
-    def _add_card(self,card):
-        self.cards.append(card)
+            return p.value[s][1] == 21
+
+    def _add_card(self,card,slot):
+        self.cards[f's{slot}'].append(card)
         self.compute_value()
-        self.update_status()
+        self.update_status(status=None,slot=slot)
 
     def compute_value(self): 
-        if self.ishidden() and len(self.cards) ==2:
-            cards = self.cards[:-1].copy()
-        else:
-            cards = self.cards
-        val = [0]
-        for card in cards:
-            card = card[:-1]
-            try:
-                val = [v + int(card) for v in val]
-            except ValueError:
-                if card == 'A':
-                    val = [val[0]+1,val[0]+11]
-                else:
-                    val = [v + 10 for v in val]                
-            try:
-                if val[1] > 21: del val[1]
-            except:
-                pass
-        self.value = val
-        if self.has_blackjack():
-            self.value = [21]
-        elif self.status == 'STAND':
-            self.value = [max(self.value)]
+        val = {s:[0] for s in self.cards}
+        for s,cards in self.cards.items():
+            if self.ishidden() and len(cards) ==2:
+                cards = cards[:-1].copy()
+            for card in cards:
+                card = card[:-1]
+                try:
+                    val[s] = [v + int(card) for v in val[s]]
+                except ValueError:
+                    if card == 'A':
+                        val[s] = [val[s][0]+1,val[s][0]+11]
+                    else:
+                        val[s] = [v + 10 for v in val[s]]                
+                try:
+                    if val[s][1] > 21: del val[s][1]
+                except:
+                    pass
+            self.value[s] = val[s]
+            if self.status[s] == 'BLACKJACK':
+                self.value[s] = [21]
+            elif self.status[s] == 'STAND':
+                self.value[s] = [max(self.value[s])]
 
     def compute_colourstring(self):
         if self.colour is not None:
@@ -84,10 +110,10 @@ class Player():
     def compute_colourname(self):
         return f"{self.colourstring}{self.name}{Style.RESET_ALL}"
 
-    def deal(self,wait=0.5):
+    def deal(self,wait=0.5,slot=1):
         if wait is not None:
             time.sleep(wait)
-        self._add_card(shoe.pop())
+        self._add_card(shoe.pop(),slot=slot)
         print_cards()
     
     def ishidden(self):
@@ -100,40 +126,48 @@ class Player():
             raise Exception("Can't reveal a non-hidden player")
 
     def reset(self,hidden=False):
-        self.cards = []
-        self.bet = 0
-        self.value = [0]
+        self.cards = {'s1':[]}
+        self.value = {'s1':[0]}
+        self.bet = {'s1':0}
         self.hidden = hidden
-        self.status = None
+        self.status = {'s1':None}
+        self.nslots = 1
 
 def print_cards():
     flush()
     # PLAYERS
-    for p in players:   
+    for p in players: 
         print(p.colourname)
-        print(f"Bet: ${p.bet:.2f}")
-        arts.print_cards(p.cards)
-        if len(p.value) == 1:
-            print(f"Hand: {p.value[0]}",end="")            
-        else:
-            print(f"Hand: {p.value[0]} / {p.value[1]}",end="")
-        if p.status is None:
-            print("")
-        else:
-            print(f" {p.status}")
+        for s,value in p.value.items():
+            if int(s[1:]) > 1:
+                print("-"*28) 
+            print(f"Bet: ${p.bet[s]:.2f}")
+            arts.print_cards(p.cards[s])
+            if len(value) == 1:
+                print(f"Hand: {value[0]}",end="")            
+            else:
+                print(f"Hand: {value[0]} / {value[1]}",end="")
+            if p.status[s] is None:
+                print("")
+            else:
+                print(f" {p.status[s]}")
         print("-"*150)   
     # DEALER
     print(pc.colourname)
-    arts.print_cards(pc.cards.copy(),pc.hidden)
-    if len(pc.value) == 1:
-        print(f"Hand: {pc.value[0]}",end="")            
+    arts.print_cards(pc.cards['s1'].copy(),pc.hidden)
+    if len(pc.value['s1']) == 1:
+        print(f"Hand: {pc.value['s1'][0]}",end="")            
     else:
-        print(f"Hand: {pc.value[0]} / {pc.value[1]}",end="")
-    if pc.status is None:
+        print(f"Hand: {pc.value['s1'][0]} / {pc.value['s1'][1]}",end="")
+    if pc.status['s1'] is None:
         print("")
     else:
-        print(f" {pc.status}")
+        print(f" {pc.status['s1']}")
     print("")
+
+def clear():
+    import os
+    os.system('cls||clear')
 
 def flush():
     clear()
@@ -210,7 +244,7 @@ while True:
             prompt=f"{p.colourname}, how much do you want to bet? $",
             condition=lambda x: float(x) > 0,
             err_msg="Please insert a valid number!"))
-        p.bet = bet
+        p.bet['s1'] = bet
     flush()
     print_cards()
     # Deal first card
@@ -224,70 +258,89 @@ while True:
 
     # # Players' turn:
     for p in players:
-        while True:
-            if p.status in ['BLACKJACK','BUSTED']:
-                break
-            print(f"It's {p.colourname}'s turn. What do you want to do?")
-            if len(p.cards) == 2:
-                action = check_input(
-                    prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN\n",
-                    condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown'],
-                    err_msg="Action not valid.").strip().lower()
-            else:
-                action = check_input(
-                    prompt="Type 'h' for HIT, 's' for STAND\n",
-                    condition=lambda x: x.strip().lower() in ['h','s','hit','stand'],
-                    err_msg="Action not valid.").strip().lower()
-            if action in ['h','hit']:
-                p.deal()
-                continue
-            elif action in ['s','stand']:
-                p.update_status("STAND")
-                print_cards()
-                break
-            elif action in ['dd','double down', 'doubledown']:
-                p.bet *= 2
-                p.deal()
-                if p.status is None:
-                    p.update_status("STAND")
-                    print_cards()
-                break
+        restart = True
+        while restart:
+            for s in p.cards.copy():
+                restart = False
+                slot=int(s[1:])
+                if len(p.cards[s]) == 1: p.deal(slot=slot)
+                while True:
+                    if p.status[s] in ['BLACKJACK','BUSTED','STAND']:
+                        break
+                    print(f"It's {p.colourname}'s turn. What do you want to do?")
+                    #If player has 2 cards: enable DOUBLE DOWN and SPLIT
+                    if len(p.cards[s]) == 2:
+                        if p.can_split(slot):
+                            prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN, 'split' for SPLIT\n"
+                            condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown','split']
+                        else:
+                            prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN\n"
+                            condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown']
+                    # Otherwise only HIT or STAND possible
+                    else:
+                        prompt="Type 'h' for HIT, 's' for STAND\n"
+                        condition=lambda x: x.strip().lower() in ['h','s','hit','stand']
+                    action = check_input(
+                        prompt=prompt,
+                        condition=condition,
+                        err_msg="Action not valid.").strip().lower()
+                    # Do respective actions 
+                    if action in ['h','hit']:
+                        p.deal(slot=slot)
+                        continue
+                    elif action in ['s','stand']:
+                        p.update_status("STAND",slot=slot)
+                        print_cards()
+                        break
+                    elif action in ['dd','double down', 'doubledown']:
+                        p.bet[s] *= 2
+                        p.deal(slot=slot)
+                        if p.status[s] is None:
+                            p.update_status("STAND",slot=slot)
+                            print_cards()
+                        break
+                    elif action == 'split':
+                        p.split(slot=slot)
+                        restart = True
+                if restart:
+                    break
 
     # # Dealer's turn:
     time.sleep(1)
     pc.reveal()
     pc.compute_value()
     print_cards()
-    print(f"DEALER reveals a {pc.cards[-1][:-1]}")
+    print(f"DEALER reveals a {pc.cards['s1'][-1][:-1]}")
     time.sleep(1)
-    while max(pc.value) < 17:
-        pc.deal()
+    while max(pc.value['s1']) < 17:
+        pc.deal(wait=1)
     time.sleep(1)
 
     # RESULTS
     paystring=""
     for p in players:
-        if p.status == "BLACKJACK":
-            if pc.status != "BLACKJACK":
-                payout = 1.5*p.bet
-                paystring += f"{p.colourname} did BLACKJACK and won {payout:.2f}$!!\n"
+        for s in p.cards:
+            if p.status[s] == "BLACKJACK":
+                if pc.status['s1'] != "BLACKJACK":
+                    payout = 1.5*p.bet[s]
+                    paystring += f"{p.colourname} did BLACKJACK and won {payout:.2f}$!!\n"
+                    p.position += payout
+                else:
+                    paystring += f"{p.colourname} PUSHED\n"
+            elif p.status[s] == "BUSTED":
+                payout = p.bet[s]
+                p.position -= payout
+                paystring += f"{p.colourname} BUSTED and lost {payout:.2f}$\n"
+            elif p.value[s] > pc.value['s1']:
+                payout = p.bet[s]
                 p.position += payout
-            else:
+                paystring += f"{p.colourname} won {payout:.2f}$\n"
+            elif p.value[s] < pc.value['s1']:
+                payout = p.bet[s]
+                p.position -= payout
+                paystring += f"{p.colourname} lost {payout:.2f}$\n"
+            elif p.value[s] == pc.value['s1']:
                 paystring += f"{p.colourname} PUSHED\n"
-        elif p.status == "BUSTED":
-            payout = p.bet
-            p.position -= payout
-            paystring += f"{p.colourname} BUSTED and lost {payout:.2f}$\n"
-        elif p.value > pc.value:
-            payout = p.bet
-            p.position += payout
-            paystring += f"{p.colourname} won {payout:.2f}$\n"
-        elif p.value < pc.value:
-            payout = p.bet
-            p.position -= payout
-            paystring += f"{p.colourname} lost {payout:.2f}$\n"
-        elif p.value == pc.value:
-            paystring += f"{p.colourname} PUSHED\n"
     print_cards()
     print(paystring)
     for p in players:
