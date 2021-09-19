@@ -6,6 +6,7 @@ import time
 from itertools import compress
 import numpy as np
 from colorama import Fore, Back, Style
+import re
 
 class Player():
     def __init__(self,name = None, hidden = False, colour=None):
@@ -41,41 +42,35 @@ class Player():
 
     def can_split(self,slot=1):
         s = f's{slot}'
-        if len(p.cards[s]) == 2:
+        if len(self.cards[s]) == 2:
             arr=['10','J','Q','K']
-            val = [c[:-1] for c in p.cards[s]]
+            val = [c[:-1] for c in self.cards[s]]
             if (val[0] == val[1]) or (val[0] in arr and val[1] in arr):
                 return True
         return False
 
     def has_busted(self,slot=1):
         s = f's{slot}'
-        return p.value[s][0] > 21
+        return 
 
-    def update_status(self,status=None,slot = 1):
-        current = self.status[f's{slot}']
+    def update_status(self,status=None,slot=1):
+        self.compute_value()
+        s = f's{slot}'  
+        current = self.status[s]
         if current is not None:
             raise Exception(f"Slot {slot}'s Status is already set to '{current}', and cannot be updated anymore.")
         if status is None:
-            if self.has_blackjack(slot=slot): 
-                self.status[f's{slot}'] = 'BLACKJACK'
-            elif self.has_busted(slot=slot): 
-                self.status[f's{slot}'] = 'BUSTED'
+            if max(self.value[s]) == 21:
+                self.status[s] = 'BLACKJACK'
+                self.value[s] = [21]
+            elif self.value[s][0] > 21: 
+                self.status[s] = 'BUSTED'
         else:
-            self.status[f's{slot}'] = status
-        self.compute_value()
-
-    def has_blackjack(self,slot=1):
-        s = f's{slot}'
-        if len(p.value[s]) == 1:
-            return p.value[s][0] == 21
-        else:
-            return p.value[s][1] == 21
+            self.status[s] = status
 
     def _add_card(self,card,slot):
         self.cards[f's{slot}'].append(card)
-        self.compute_value()
-        self.update_status(status=None,slot=slot)
+        self.update_status(slot=slot)
 
     def compute_value(self): 
         val = {s:[0] for s in self.cards}
@@ -122,6 +117,7 @@ class Player():
     def reveal(self):
         if self.ishidden():
             self.hidden = False
+            self.update_status()
         else:
             raise Exception("Can't reveal a non-hidden player")
 
@@ -193,8 +189,11 @@ def shuffle():
     random.shuffle(shoe)
     return shoe
 
-colours = {'Fore':[Fore.RED,Fore.GREEN,Fore.CYAN,Fore.YELLOW,Fore.MAGENTA],
-          'Back':[Back.BLACK]*5}
+colours = {'Fore':[
+                Fore.LIGHTRED_EX,Fore.LIGHTGREEN_EX,Fore.LIGHTCYAN_EX,
+                Fore.LIGHTYELLOW_EX,Fore.LIGHTMAGENTA_EX,Fore.LIGHTBLUE_EX,
+                Fore.LIGHTWHITE_EX,Fore.GREEN,Fore.RED],
+            'Back':[Back.BLACK]*9}
 
 # Initialize cards, deck and shoe (based on number of decsk)
 tot_cards = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]
@@ -206,19 +205,19 @@ shoe_base = deck * ndecks
 # Clear screen and print logo
 clear()
 print(arts.logo)
-
+max_players = 9
 # Define number of players and names (currently only 1 player supported)
 nplayers = int(check_input(
-    prompt="How many players? (max 5) ",
-    condition=lambda x: int(x) <=5 and int(x) > 0,
-    err_msg="Please enter a valid number of players (max 5)"))
+    prompt=f"How many players? (max {max_players}) ",
+    condition=lambda x: int(x) <= max_players and int(x) > 0,
+    err_msg=f"Please enter a valid number of players (max {max_players})"))
 players=[]    
 for i in range(nplayers):
     while True:
         name = check_input(
             prompt=f"{colours['Fore'][i]}{colours['Back'][i]}Player {i+1}{Style.RESET_ALL}, what is your name?\n",
-            condition=lambda x: x.strip(),
-            err_msg="Please enter a valid name.").strip()
+            condition=lambda x: bool(re.match("^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]{1,15}$",x.strip())),
+            err_msg="Your name can have max 15 characters among letters, numbers and the following special characters: .!@#$%^&_+-=*()\n").strip()
         all_names = [p.name for p in players]
         if name in all_names:
             print(f"{name} has already been chosen, please select a different name.")
@@ -233,8 +232,9 @@ for i in range(nplayers):
 pc = Player(name = 'DEALER',hidden = True,
     colour={'Fore':Fore.BLACK,'Back':Back.WHITE})
 
+# ==================================================================================================
+# ==================================================================================================
 # START
-# Shuffle shoe
 while True:
     shoe = shuffle()
     flush()
@@ -308,13 +308,15 @@ while True:
     # # Dealer's turn:
     time.sleep(1)
     pc.reveal()
-    pc.compute_value()
     print_cards()
     print(f"DEALER reveals a {pc.cards['s1'][-1][:-1]}")
     time.sleep(1)
     while max(pc.value['s1']) < 17:
         pc.deal(wait=1)
-    time.sleep(1)
+    if pc.status['s1'] is None:
+        pc.update_status('STAND')
+        print_cards()
+    time.sleep(.5)
 
     # RESULTS
     paystring=""
@@ -331,14 +333,14 @@ while True:
                 payout = p.bet[s]
                 p.position -= payout
                 paystring += f"{p.colourname} BUSTED and lost {payout:.2f}$\n"
-            elif p.value[s] > pc.value['s1']:
+            elif (p.value[s] > pc.value['s1']) or (p.value[s] < pc.value['s1'] and pc.status['s1'] == "BUSTED"):
                 payout = p.bet[s]
                 p.position += payout
                 paystring += f"{p.colourname} won {payout:.2f}$\n"
             elif p.value[s] < pc.value['s1']:
-                payout = p.bet[s]
-                p.position -= payout
-                paystring += f"{p.colourname} lost {payout:.2f}$\n"
+                    payout = p.bet[s]
+                    p.position -= payout
+                    paystring += f"{p.colourname} lost {payout:.2f}$\n"
             elif p.value[s] == pc.value['s1']:
                 paystring += f"{p.colourname} PUSHED\n"
     print_cards()
@@ -347,13 +349,3 @@ while True:
         p.reset()
     pc.reset(hidden=True)
     input("Type any key to continue... ")
-    continue
-
-
-
-
-
-
-
-
-

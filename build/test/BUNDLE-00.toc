@@ -1,3 +1,0 @@
-([('test',
-   '/Users/dmar0022/university/udemy/100_Days_of_Code/dist/test',
-   'EXECUTABLE')],)
