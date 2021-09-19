@@ -3,6 +3,7 @@ from colorama import Fore, Back, Style
 import random
 import time
 import re
+import os
 
 class Player():
     def __init__(self,name = None, hidden = False, colour=None):
@@ -160,7 +161,6 @@ def print_cards():
     print("")
 
 def clear():
-    import os
     os.system('cls||clear')
 
 def flush():
@@ -245,7 +245,7 @@ while True:
             bet = float(check_input(
                 prompt=f"{p.colourname}, how much do you want to bet? $",
                 condition=lambda x: float(x) > 0 and float(x)<=max_bet,
-                err_msg="Please insert a valid number!"))
+                err_msg="Please insert a valid number, up to 10000$!"))
             p.bet['s1'] = bet
         flush()
         print_cards()
@@ -354,4 +354,4 @@ while True:
         if k.strip().lower() in ["r","R"]:
             break
         elif k.strip().lower() in ["e","E"]:
-            exit()
+            os._exit(0)
