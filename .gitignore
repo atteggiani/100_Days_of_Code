@@ -1,4 +1,5 @@
 test.py
-bubbi_blackjack
+*/__pycache__/
+final_apps/
 build/
 dist/
