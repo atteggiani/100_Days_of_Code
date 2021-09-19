@@ -1,5 +1,7 @@
 test.py
-*/__pycache__/
+__pycache__/
 final_apps/
 build/
 dist/
+*.yml
+env_*/

@@ -1,11 +1,8 @@
-#!/Applications/anaconda3/bin/python
-from os import register_at_fork
+#!/Users/dmar0022/university/udemy/100_Days_of_Code/final_projects/files/d11_blackjack/env_bubbi_blackjack/bin/python
 import arts 
+from colorama import Fore, Back, Style
 import random
 import time
-from itertools import compress
-import numpy as np
-from colorama import Fore, Back, Style
 import re
 
 class Player():
