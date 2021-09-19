@@ -3,5 +3,4 @@ __pycache__/
 final_apps/
 build/
 dist/
-*.yml
 env_*/

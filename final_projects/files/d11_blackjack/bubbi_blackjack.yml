@@ -1,0 +1,8 @@
+name: bubbi_blackjack
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8.11=h88f2d9e_1
+  - colorama=0.4.4=pyhd3eb1b0_0
+  - pip=21.2.2=py38hecd8cb5_0

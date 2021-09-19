@@ -1,4 +1,3 @@
-#!/Users/dmar0022/university/udemy/100_Days_of_Code/final_projects/files/d11_blackjack/env_bubbi_blackjack/bin/python
 import arts 
 from colorama import Fore, Back, Style
 import random
@@ -64,6 +63,8 @@ class Player():
                 self.status[s] = 'BUSTED'
         else:
             self.status[s] = status
+        if status == 'STAND':
+            self.value[s] = [max(self.value[s])]
 
     def _add_card(self,card,slot):
         self.cards[f's{slot}'].append(card)
@@ -199,150 +200,158 @@ deck = [f"{val}{c}" for c in card_colors for val in tot_cards]
 ndecks = 10
 shoe_base = deck * ndecks
 
-# Clear screen and print logo
-clear()
-print(arts.logo)
+# Parameters
 max_players = 9
-# Define number of players and names (currently only 1 player supported)
-nplayers = int(check_input(
-    prompt=f"How many players? (max {max_players}) ",
-    condition=lambda x: int(x) <= max_players and int(x) > 0,
-    err_msg=f"Please enter a valid number of players (max {max_players})"))
-players=[]    
-for i in range(nplayers):
-    while True:
-        name = check_input(
-            prompt=f"{colours['Fore'][i]}{colours['Back'][i]}Player {i+1}{Style.RESET_ALL}, what is your name?\n",
-            condition=lambda x: bool(re.match("^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]{1,15}$",x.strip())),
-            err_msg="Your name can have max 15 characters among letters, numbers and the following special characters: .!@#$%^&_+-=*()\n").strip()
-        all_names = [p.name for p in players]
-        if name in all_names:
-            print(f"{name} has already been chosen, please select a different name.")
-            continue
-        else:
-            break
-    players.append(Player(
-                    name = name,
-                    colour={'Fore':colours['Fore'][i],
-                            'Back':colours['Back'][i]}))
-    print("")
-pc = Player(name = 'DEALER',hidden = True,
-    colour={'Fore':Fore.BLACK,'Back':Back.WHITE})
+max_bet = 10000
 
-# ==================================================================================================
-# ==================================================================================================
-# START
 while True:
-    shoe = shuffle()
-    flush()
-    # Define bets
-    for p in players:
-        bet = float(check_input(
-            prompt=f"{p.colourname}, how much do you want to bet? $",
-            condition=lambda x: float(x) > 0,
-            err_msg="Please insert a valid number!"))
-        p.bet['s1'] = bet
-    flush()
-    print_cards()
-    # Deal first card
-    for p in players:
-        p.deal()
-    pc.deal()
-    # Deal second card
-    for p in players:
-        p.deal()
-    pc.deal()
+    # Clear screen and print logo
+    clear()
+    print(arts.logo)
+    # Define number of players and names (currently only 1 player supported)
+    nplayers = int(check_input(
+        prompt=f"How many players? (max {max_players}) ",
+        condition=lambda x: int(x) <= max_players and int(x) > 0,
+        err_msg=f"Please enter a valid number of players (max {max_players})"))
+    players=[]    
+    for i in range(nplayers):
+        while True:
+            name = check_input(
+                prompt=f"{colours['Fore'][i]}{colours['Back'][i]}Player {i+1}{Style.RESET_ALL}, what is your name?\n",
+                condition=lambda x: bool(re.match("^[a-zA-Z0-9!@#\$%\^\&*\)\(+=._-]{1,15}$",x.strip())),
+                err_msg="Your name can have max 15 characters among letters, numbers and the following special characters: .!@#$%^&_+-=*()\n").strip()
+            all_names = [p.name for p in players]
+            if name in all_names:
+                print(f"{name} has already been chosen, please select a different name.")
+                continue
+            else:
+                break
+        players.append(Player(
+                        name = name,
+                        colour={'Fore':colours['Fore'][i],
+                                'Back':colours['Back'][i]}))
+        print("")
+    pc = Player(name = 'DEALER',hidden = True,
+        colour={'Fore':Fore.BLACK,'Back':Back.WHITE})
 
-    # # Players' turn:
-    for p in players:
-        restart = True
-        while restart:
-            for s in p.cards.copy():
-                restart = False
-                slot=int(s[1:])
-                if len(p.cards[s]) == 1: p.deal(slot=slot)
-                while True:
-                    if p.status[s] in ['BLACKJACK','BUSTED','STAND']:
-                        break
-                    print(f"It's {p.colourname}'s turn. What do you want to do?")
-                    #If player has 2 cards: enable DOUBLE DOWN and SPLIT
-                    if len(p.cards[s]) == 2:
-                        if p.can_split(slot):
-                            prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN, 'split' for SPLIT\n"
-                            condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown','split']
+    # ==================================================================================================
+    # ==================================================================================================
+    # START
+    while True:
+        shoe = shuffle()
+        flush()
+        # Define bets
+        for p in players:
+            bet = float(check_input(
+                prompt=f"{p.colourname}, how much do you want to bet? $",
+                condition=lambda x: float(x) > 0 and float(x)<=max_bet,
+                err_msg="Please insert a valid number!"))
+            p.bet['s1'] = bet
+        flush()
+        print_cards()
+        # Deal first card
+        for p in players:
+            p.deal()
+        pc.deal()
+        # Deal second card
+        for p in players:
+            p.deal()
+        pc.deal()
+
+        # # Players' turn:
+        for p in players:
+            restart = True
+            while restart:
+                for s in p.cards.copy():
+                    restart = False
+                    slot=int(s[1:])
+                    if len(p.cards[s]) == 1: p.deal(slot=slot)
+                    while True:
+                        if p.status[s] in ['BLACKJACK','BUSTED','STAND']:
+                            break
+                        print(f"It's {p.colourname}'s turn. What do you want to do?")
+                        #If player has 2 cards: enable DOUBLE DOWN and SPLIT
+                        if len(p.cards[s]) == 2:
+                            if p.can_split(slot):
+                                prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN, 'split' for SPLIT\n"
+                                condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown','split']
+                            else:
+                                prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN\n"
+                                condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown']
+                        # Otherwise only HIT or STAND possible
                         else:
-                            prompt="Type 'h' for HIT, 's' for STAND, 'dd' for DOUBLE DOWN\n"
-                            condition=lambda x: x.strip().lower() in ['h','s','dd','hit','stand','double down', 'doubledown']
-                    # Otherwise only HIT or STAND possible
-                    else:
-                        prompt="Type 'h' for HIT, 's' for STAND\n"
-                        condition=lambda x: x.strip().lower() in ['h','s','hit','stand']
-                    action = check_input(
-                        prompt=prompt,
-                        condition=condition,
-                        err_msg="Action not valid.").strip().lower()
-                    # Do respective actions 
-                    if action in ['h','hit']:
-                        p.deal(slot=slot)
-                        continue
-                    elif action in ['s','stand']:
-                        p.update_status("STAND",slot=slot)
-                        print_cards()
-                        break
-                    elif action in ['dd','double down', 'doubledown']:
-                        p.bet[s] *= 2
-                        p.deal(slot=slot)
-                        if p.status[s] is None:
+                            prompt="Type 'h' for HIT, 's' for STAND\n"
+                            condition=lambda x: x.strip().lower() in ['h','s','hit','stand']
+                        action = check_input(
+                            prompt=prompt,
+                            condition=condition,
+                            err_msg="Action not valid.").strip().lower()
+                        # Do respective actions 
+                        if action in ['h','hit']:
+                            p.deal(slot=slot)
+                            continue
+                        elif action in ['s','stand']:
                             p.update_status("STAND",slot=slot)
                             print_cards()
+                            break
+                        elif action in ['dd','double down', 'doubledown']:
+                            p.bet[s] *= 2
+                            p.deal(slot=slot)
+                            if p.status[s] is None:
+                                p.update_status("STAND",slot=slot)
+                                print_cards()
+                            break
+                        elif action == 'split':
+                            p.split(slot=slot)
+                            restart = True
+                    if restart:
                         break
-                    elif action == 'split':
-                        p.split(slot=slot)
-                        restart = True
-                if restart:
-                    break
 
-    # # Dealer's turn:
-    time.sleep(1)
-    pc.reveal()
-    print_cards()
-    print(f"DEALER reveals a {pc.cards['s1'][-1][:-1]}")
-    time.sleep(1)
-    while max(pc.value['s1']) < 17:
-        pc.deal(wait=1)
-    if pc.status['s1'] is None:
-        pc.update_status('STAND')
+        # # Dealer's turn:
+        time.sleep(1)
+        pc.reveal()
         print_cards()
-    time.sleep(.5)
+        print(f"DEALER reveals a {pc.cards['s1'][-1][:-1]}")
+        time.sleep(1)
+        while max(pc.value['s1']) < 17:
+            pc.deal(wait=1)
+        if pc.status['s1'] is None:
+            pc.update_status('STAND')
+            print_cards()
+        time.sleep(.5)
 
-    # RESULTS
-    paystring=""
-    for p in players:
-        for s in p.cards:
-            if p.status[s] == "BLACKJACK":
-                if pc.status['s1'] != "BLACKJACK":
-                    payout = 1.5*p.bet[s]
-                    paystring += f"{p.colourname} did BLACKJACK and won {payout:.2f}$!!\n"
-                    p.position += payout
-                else:
-                    paystring += f"{p.colourname} PUSHED\n"
-            elif p.status[s] == "BUSTED":
-                payout = p.bet[s]
-                p.position -= payout
-                paystring += f"{p.colourname} BUSTED and lost {payout:.2f}$\n"
-            elif (p.value[s] > pc.value['s1']) or (p.value[s] < pc.value['s1'] and pc.status['s1'] == "BUSTED"):
-                payout = p.bet[s]
-                p.position += payout
-                paystring += f"{p.colourname} won {payout:.2f}$\n"
-            elif p.value[s] < pc.value['s1']:
+        # RESULTS
+        paystring=""
+        for p in players:
+            for s in p.cards:
+                if p.status[s] == "BLACKJACK":
+                    if pc.status['s1'] != "BLACKJACK":
+                        payout = 1.5*p.bet[s]
+                        paystring += f"{p.colourname} did BLACKJACK and won {payout:.2f}$!!\n"
+                        p.position += payout
+                    else:
+                        paystring += f"{p.colourname} PUSHED\n"
+                elif p.status[s] == "BUSTED":
                     payout = p.bet[s]
                     p.position -= payout
-                    paystring += f"{p.colourname} lost {payout:.2f}$\n"
-            elif p.value[s] == pc.value['s1']:
-                paystring += f"{p.colourname} PUSHED\n"
-    print_cards()
-    print(paystring)
-    for p in players:
-        p.reset()
-    pc.reset(hidden=True)
-    input("Type any key to continue... ")
+                    paystring += f"{p.colourname} BUSTED and lost {payout:.2f}$\n"
+                elif (p.value[s] > pc.value['s1']) or (p.value[s] < pc.value['s1'] and pc.status['s1'] == "BUSTED"):
+                    payout = p.bet[s]
+                    p.position += payout
+                    paystring += f"{p.colourname} won {payout:.2f}$\n"
+                elif p.value[s] < pc.value['s1']:
+                        payout = p.bet[s]
+                        p.position -= payout
+                        paystring += f"{p.colourname} lost {payout:.2f}$\n"
+                elif p.value[s] == pc.value['s1']:
+                    paystring += f"{p.colourname} PUSHED\n"
+        print_cards()
+        print(paystring)
+        for p in players:
+            p.reset()
+        pc.reset(hidden=True)
+        k = input("Type 'r' to change players, 'e' to EXIT or any other key to continue...")
+        if k.strip().lower() in ["r","R"]:
+            break
+        elif k.strip().lower() in ["e","E"]:
+            exit()
